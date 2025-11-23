@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priority Protector - Meeting Escape Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tagline { font-size: 1.2em; opacity: 0.95; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover { transform: translateY(-5px); }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        .meetings-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-header h2 { font-size: 1.8em; color: #333; }
+
+        .role-selector {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .meeting-card {
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .meeting-card:hover {
+            border-left-color: #667eea;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .meeting-card.low-value {
+            border-left-color: #ff4757;
+            background: #fff5f5;
+        }
+
+        .meeting-card.medium-value {
+            border-left-color: #ffa502;
+            background: #fffbf0;
+        }
+
+        .meeting-card.high-value {
+            border-left-color: #26de81;
+            background: #f0fff4;
+        }
+
+        .meeting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .meeting-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .score-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85em;
+        }
+
+        .score-low {
+            background: #ffe5e5;
+            color: #c0392b;
+        }
+
+        .score-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .score-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .meeting-details {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffa502;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.8em;
+        }
+
+        .notification-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .notification-preview strong {
+            font-size: 1.1em;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .close-modal {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Priority Protector</h1>
+            <p class="tagline">Your AI-powered meeting escape assistant</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalMeetings">--</div>
+                <div class="stat-label">Total Meetings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="lowValueMeetings">--</div>
+                <div class="stat-label">Low-Value Meetings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="hoursWasted">--</div>
+                <div class="stat-label">Hours at Risk</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="estimatedCost">--</div>
+                <div class="stat-label">Estimated Cost</div>
+            </div>
+        </div>
+
+        <div class="meetings-container">
+            <div class="section-header">
+                <h2>📅 Your Upcoming Meetings</h2>
+                <select class="role-selector" id="userRole">
+                    <option value="generic">Generic Role</option>
+                    <option value="technical">Technical/Engineer</option>
+                    <option value="data_scientist">Data Scientist</option>
+                    <option value="manager">Manager</option>
+                    <option value="designer">Designer</option>
+                </select>
+            </div>
+
+            <div id="meetingsList" class="loading">
+                <div class="spinner"></div>
+                <p>Loading your meetings...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="excuseModal" class="modal">
+        <div class="modal-content">
+            <h2>🚨 Emergency Escape Activated!</h2>
+            <div class="notification-preview" id="excuseText">
+                <strong>Generating your excuse...</strong>
+            </div>
+            <p><strong>What to do:</strong> Show this notification to excuse yourself. A copy has been sent to your Slack!</p>
+            <button class="btn close-modal" onclick="closeModal()">Got it! 👍</button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMeetings();
+            loadStats();
+        });
+
+        async function loadMeetings() {
+            try {
+                const response = await fetch('/api/meetings');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayMeetings(data.meetings);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Error loading meetings');
+            }
+        }
+
+        function displayMeetings(meetings) {
+            const container = document.getElementById('meetingsList');
+
+            if (meetings.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>No upcoming meetings found</h3><p>Enjoy your free time! 🎉</p></div>';
+                return;
+            }
+
+            container.innerHTML = meetings.map(meeting => {
+                const scoreClass = meeting.score < 5 ? 'low-value' : meeting.score < 7 ? 'medium-value' : 'high-value';
+                const badgeClass = meeting.score < 5 ? 'score-low' : meeting.score < 7 ? 'score-medium' : 'score-high';
+                const startDate = new Date(meeting.start);
+                const formattedDate = startDate.toLocaleString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                });
+
+                return `
+                    <div class="meeting-card ${scoreClass}">
+                        <div class="meeting-header">
+                            <div class="meeting-title">${escapeHtml(meeting.title)}</div>
+                            <div class="score-badge ${badgeClass}">
+                                ${meeting.score < 5 ? '⚠️' : meeting.score < 7 ? '⚡' : '✅'}
+                                Score: ${meeting.score}/10
+                            </div>
+                        </div>
+                        <div class="meeting-details">
+                            <strong>📅 When:</strong> ${formattedDate}<br>
+                            <strong>👥 Attendees:</strong> ${meeting.attendees} people<br>
+                            <strong>📧 Organizer:</strong> ${meeting.organizer}
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-danger" onclick="emergencyEscape('${escapeHtml(meeting.title)}')">
+                                🚨 Emergency Escape
+                            </button>
+                            <button class="btn btn-warning" onclick="declineMeeting('${meeting.id}', '${escapeHtml(meeting.title)}')">
+                                ❌ Auto-Decline
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('totalMeetings').textContent = stats.total_meetings;
+                    document.getElementById('lowValueMeetings').textContent = stats.low_value_meetings;
+                    document.getElementById('hoursWasted').textContent = stats.hours_wasted;
+                    document.getElementById('estimatedCost').textContent = '$' + stats.estimated_cost.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function emergencyEscape(meetingTitle) {
+            const userRole = document.getElementById('userRole').value;
+
+            try {
+                const response = await fetch('/api/generate-excuse', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ role: userRole, meeting_title: meetingTitle })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const excuse = data.excuse;
+                    document.getElementById('excuseText').innerHTML = `
+                        <strong>🚨 ${excuse.excuse}</strong><br><br>
+                        <em>${excuse.follow_up}</em><br><br>
+                        <small>${excuse.apology}</small>
+                    `;
+                    document.getElementById('excuseModal').style.display = 'block';
+                }
+            } catch (error) {
+                alert('Error generating excuse');
+            }
+        }
+
+        async function declineMeeting(meetingId, meetingTitle) {
+            if (!confirm(`Decline "${meetingTitle}"?`)) return;
+
+            try {
+                const response = await fetch('/api/decline-meeting', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ meeting_id: meetingId, meeting_title: meetingTitle, reason: 'low_priority' })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Meeting Declined!\n\nMessage:\n"${data.message}"`);
+                    loadMeetings();
+                }
+            } catch (error) {
+                alert('Error declining meeting');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('excuseModal').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('meetingsList').innerHTML = `<div class="empty-state"><strong>⚠️ Error:</strong> ${escapeHtml(message)}</div>`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('excuseModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
