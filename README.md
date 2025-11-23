@@ -348,7 +348,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 Built for **IBM watsonx Orchestrate Agentic AI Hackathon** - November 2025
 
 **Technologies:**
-- IBM watsonx Orchestrate (agent orchestration)
+- IBM Watsonx Orchestrate (agent orchestration)
 - Google Calendar API (meeting data)
 - Slack API (notifications & bot)
 - Flask (web framework)
@@ -364,7 +364,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- IBM watsonx Orchestrate team for the amazing platform
+- IBM Watsonx Orchestrate team for the amazing platform
 - LabLab.ai for organizing the hackathon
 - All contributors and testers
 
@@ -372,7 +372,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-**Project Link:** [https://github.com/YOUR_USERNAME/priority-protector](https://github.com/YOUR_USERNAME/priority-protector)
+**Project Link:** [https://github.com/YOUR_USERNAME/priority-protector](https://github.com/7dracoder/priority-protector)
 
 **Demo Video:** [Coming Soon]
 
