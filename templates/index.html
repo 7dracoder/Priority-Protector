@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Priority Protector - Meeting Escape Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { text-align: center; color: white; margin-bottom: 40px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .stat-value { font-size: 2.5em; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; font-size: 0.9em; text-transform: uppercase; }
+        .meetings-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+        }
+        .meeting-card {
+            border-left: 4px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: #fafafa;
+        }
+        .meeting-card.low-value { border-left-color: #ff4757; background: #fff5f5; }
+        .meeting-card.medium-value { border-left-color: #ffa502; background: #fffbf0; }
+        .meeting-card.high-value { border-left-color: #26de81; background: #f0fff4; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+        }
+        .btn-danger { background: #ff4757; color: white; }
+        .btn-warning { background: #ffa502; color: white; }
+        .loading { text-align: center; padding: 60px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛡️ Priority Protector</h1>
+            <p>Your AI-powered meeting escape assistant</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalMeetings">--</div>
+                <div class="stat-label">Total Meetings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="lowValueMeetings">--</div>
+                <div class="stat-label">Low-Value Meetings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="hoursWasted">--</div>
+                <div class="stat-label">Hours at Risk</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="estimatedCost">--</div>
+                <div class="stat-label">Estimated Cost</div>
+            </div>
+        </div>
+
+        <div class="meetings-container">
+            <h2>📅 Your Upcoming Meetings</h2>
+            <div id="meetingsList" class="loading">Loading meetings...</div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMeetings();
+            loadStats();
+        });
+
+        async function loadMeetings() {
+            try {
+                const response = await fetch('/api/meetings');
+                const data = await response.json();
+                if (data.success) displayMeetings(data.meetings);
+            } catch (error) {
+                document.getElementById('meetingsList').innerHTML = 
+                    '<p>Error loading meetings. Make sure Google Calendar is configured.</p>';
+            }
+        }
+
+        function displayMeetings(meetings) {
+            const container = document.getElementById('meetingsList');
+            if (meetings.length === 0) {
+                container.innerHTML = '<p>No upcoming meetings found.</p>';
+                return;
+            }
+
+            container.innerHTML = meetings.map(m => {
+                const scoreClass = m.score < 5 ? 'low-value' : m.score < 7 ? 'medium-value' : 'high-value';
+                return `
+                    <div class="meeting-card ${scoreClass}">
+                        <h3>${m.title}</h3>
+                        <p>Score: ${m.score}/10 | Attendees: ${m.attendees}</p>
+                        <button class="btn btn-danger" onclick="emergencyEscape('${m.title}')">
+                            🚨 Emergency Escape
+                        </button>
+                        <button class="btn btn-warning" onclick="declineMeeting('${m.id}', '${m.title}')">
+                            ❌ Decline
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalMeetings').textContent = data.stats.total_meetings;
+                    document.getElementById('lowValueMeetings').textContent = data.stats.low_value_meetings;
+                    document.getElementById('hoursWasted').textContent = data.stats.hours_wasted;
+                    document.getElementById('estimatedCost').textContent = '$' + data.stats.estimated_cost.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function emergencyEscape(title) {
+            try {
+                const response = await fetch('/api/generate-excuse', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ role: 'generic', meeting_title: title })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Excuse Generated:\n\n' + data.excuse.excuse + '\n\n' + 
+                          data.excuse.follow_up + '\n' + data.excuse.apology +
+                          '\n\nSent to Slack!');
+                }
+            } catch (error) {
+                alert('Error generating excuse');
+            }
+        }
+
+        async function declineMeeting(id, title) {
+            if (!confirm('Decline "' + title + '"?')) return;
+            try {
+                const response = await fetch('/api/decline-meeting', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ meeting_id: id, meeting_title: title, reason: 'low_priority' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Meeting Declined!\n\n' + data.message);
+                }
+            } catch (error) {
+                alert('Error declining meeting');
+            }
+        }
+    </script>
+</body>
+</html>
